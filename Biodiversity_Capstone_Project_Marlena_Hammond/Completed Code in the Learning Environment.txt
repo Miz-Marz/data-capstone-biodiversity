@@ -1,0 +1,130 @@
+import codecademylib
+import pandas as pd
+from matplotlib import pyplot as plt
+from scipy.stats import chi2_contingency
+
+#Species DF
+species = pd.read_csv('species_info.csv')
+print species.head()
+
+species_count = species.scientific_name.nunique()
+print species_count
+
+species_type = species.category.unique()
+print species_type
+
+conservation_statuses = species.conservation_status.unique()
+print conservation_statuses
+
+conservation_counts = species.groupby('conservation_status').scientific_name.nunique().reset_index()
+print conservation_counts
+
+species.fillna('No Intervention', inplace = True)
+conservation_counts_fixed = species.groupby('conservation_status').scientific_name.nunique().reset_index()
+print conservation_counts_fixed
+
+
+protection_counts = species.groupby('conservation_status').scientific_name.nunique().reset_index().sort_values(by='scientific_name')
+print protection_counts
+
+#Bar Graph 1 - Species Conservation Status
+plt.figure(figsize = (10,4))
+ax = plt.subplot()
+plt.bar(range(len(protection_counts)),protection_counts.scientific_name, color = 'teal')
+ax.set_xticks(range(len(protection_counts)))
+ax.set_xticklabels(protection_counts.conservation_status)
+plt.ylabel('Number of Species')
+plt.title('Conservation Status by Species')
+
+plt.savefig('Species_Conservation_Status.png')
+plt.show()
+
+#add new column
+species['is_protected'] = species.conservation_status != 'No Intervention'
+
+category_counts = species.groupby(['category', 'is_protected']).scientific_name.nunique().reset_index()
+print category_counts.head()
+
+category_pivot = category_counts.pivot(
+	columns='is_protected',
+	index='category',
+	values='scientific_name').reset_index()
+print category_pivot
+
+
+#rename columns
+category_pivot.columns = ['category', 'not_protected', 'protected']
+
+#add new column
+category_pivot['percent_protected'] = category_pivot.protected / (category_pivot.protected + category_pivot.not_protected)
+print category_pivot
+
+# The new percentages indicate that the percentage of species in each category that is protected.
+
+
+#Mammals + Birds
+contingency1 = [[30, 146],
+		[75, 413]]
+
+ch2, pval1, dof, expected = chi2_contingency(contingency1)
+pval_mammal_bird = pval1
+
+print pval_mammal_bird
+
+#Reptiles + Mammals
+contingency2 = [[5, 73],
+		[30, 146]]
+
+ch2, pval2, dof, expected = chi2_contingency(contingency2)
+pval_reptile_mammal = pval2
+
+print pval_reptile_mammal
+
+#Observations DF
+observations = pd.read_csv('observations.csv')
+print observations.head()
+
+#add new column
+species['is_sheep'] = \
+species.common_names.apply(lambda x: 'Sheep' in x)
+species_is_sheep = species[species.is_sheep]
+print species_is_sheep
+
+sheep_species = species[(species.is_sheep) & (species.category == 'Mammal')]
+print sheep_species
+
+#Sheep + Observations DF
+sheep_observations = pd.merge(sheep_species,observations)
+print sheep_observations.head()
+
+#Sheep Sightings
+obs_by_park = sheep_observations.groupby('park_name')['observations'].sum().reset_index()
+print obs_by_park
+
+
+#Bar Graph 2 - Sheep Observations
+plt.figure(figsize=(16,4))
+ax = plt.subplot()
+plt.bar(range(len(obs_by_park.park_name)),obs_by_park.observations)
+ax.set_xticks([0, 1, 2, 3])
+ax.set_xticklabels(obs_by_park.park_name)
+ax.set_ylabel('Number of Observations')
+ax.set_title('Observations of Sheep per Week')
+
+plt.savefig('Sheep_Observations.png')
+plt.show()
+
+#Foot and Mouth Disease
+baseline = 15
+# Reductions of atleast 5%
+minimum_detectable_effect = 100*5/baseline
+print minimum_detectable_effect
+#minimum_detectable_effect = 33.33
+sample_size_per_variant = 870.0
+
+yellowstone_weeks_observing = sample_size_per_variant/507.0
+print yellowstone_weeks_observing
+
+bryce_weeks_observing = sample_size_per_variant/250.0
+print bryce_weeks_observing
+
